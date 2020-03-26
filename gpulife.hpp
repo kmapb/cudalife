@@ -17,3 +17,7 @@ class GPULife {
   void gen();
   void show() const;
 };
+
+// Macro so it works across everyting
+#define MODULAR_OFFSET(x, y, numRows, numCols) \
+    ((((x) % (numRows)) * (numCols)) + ((y) % (numCols)))

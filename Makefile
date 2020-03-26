@@ -1,17 +1,24 @@
 CXX=/usr/bin/g++
 CXXFLAGS=-g -O3
 
-grunk:	grunk.o main.o
+default: gpulife runtests
+
+gpulife:	gpulife.o main.o
 	nvcc -g -o $@ $^
 
 clean:
 	rm -f *.o
+	rm -f tests
+	rm -f gpulife
 
-tests: grunk.o tests.o
+runtests: tests
+	./tests
+
+tests: gpulife.o tests.o
 	nvcc -g -o $@ $^
 
-grunk.o: grunk.cu gpulife.hpp
-	nvcc $(CXXFLAGS) -arch compute_30 --compiler-bindir ${CXX} -c  grunk.cu
+gpulife.o: gpulife.cu gpulife.hpp
+	nvcc $(CXXFLAGS) -arch compute_30 --compiler-bindir ${CXX} -c  gpulife.cu
 
 tests.o: tests.cu gpulife.hpp
 	nvcc $(CXXFLAGS) -arch compute_30 --compiler-bindir ${CXX} -c  tests.cu
