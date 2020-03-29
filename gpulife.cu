@@ -7,19 +7,19 @@
 #include "gpulife.hpp"
 
 typedef struct Offset2D {
-  size_t x, y;
-} Offset2ds;
+  unsigned x, y;
+} Offset2D;
 
 __device__
-size_t computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
+unsigned computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
   return MODULAR_OFFSET(x, y, numRows, numCols);
 }
 
 __device__
 Offset2D computeOffset(dim3 tileDim, dim3 blockIdx, uint3 threadIdx, size_t numRows, size_t numCols) {
-  auto row = tileDim.y * blockIdx.y + threadIdx.y;
-  auto col = tileDim.x * blockIdx.x + threadIdx.x;
-  return Offset2D { col, row };
+  auto x = tileDim.x * blockIdx.x + threadIdx.x;
+  auto y = tileDim.y * blockIdx.y + threadIdx.y;
+  return { x, y };
 }
 
 static int ceilDiv(int a, int b) { return ceil(float(a) / b); }
@@ -33,10 +33,27 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
   if (off2.y >= numRows) return;
 
   auto center = computeModularOffset(off2.x, off2.y, numRows, numCols);
+  printf("b(%d,%d) t(%d,%d) / td (%d,%d) -> off2(%d,%d) mod(%d)\n",
+        blockIdx.x, blockIdx.y,
+        threadIdx.x, threadIdx.y,
+        tileDim.x, tileDim.y,
+        off2.x, off2.y,
+        center);
+
   auto nudge = [&](int dx, int dy) {
     return computeModularOffset(off2.x + dx, off2.y + dy, numRows, numCols);
   };
   Op op;
+  printf("----   %d %d -> %02d    ----\n"
+         "nw(%02d) n(%02d) ne(%02d)\n"
+         " w(%02d)   %02d   e(%02d)\n"
+         "sw(%02d) s(%02d) se(%02d)\n",
+         off2.x, off2.y,
+         center,
+         nudge(-1, -1), nudge(0, -1), nudge(+1, -1),
+         nudge(-1, 0),  center,       nudge(0, +1),
+         nudge(-1, +1), nudge(0, +1), nudge(+1, +1));
+
   out[center] = op.op(
         in[nudge(-1, -1)], in[nudge(0, -1)], in[nudge(+1, -1)],  // nw, north, ne
         in[nudge(-1,  0)], in[center],       in[nudge( 0, +1)],  // w        , e
@@ -111,6 +128,7 @@ void GPULife::show() const {
 }
 
 void GPULife::gen() {
+  if (true) {
   static const int kBlockWidth = 16;
   static const int kBlockHeight = 16;
   const dim3 grid(ceilDiv(m_numCols, kBlockHeight),
@@ -122,4 +140,25 @@ void GPULife::gen() {
   Cell* temp = m_gpuCells;
   m_gpuCells = m_gpuCellsOut;
   m_gpuCellsOut = temp;
+  }
+
+#if 0
+  cudaMemcpy(m_gpuCells
+  Cell* temp = (Cell*)malloc(sizeof(Cell) * m_numRows * m_numCols);
+  for (int i = 0; i < m_numRows; i++) {
+    for (int j = 0; j < m_numCols; j++) {
+      auto center = m_hCells[i * m_numCols + j];
+      auto neighbors = 0;
+      for (int k = -1; k <= 1; k++) {
+        for (int l = -1; l <= 1; l++) {
+          if (l == 0 && k == 0) continue;
+          auto neighbor = m_hCells[computeModularOffset(i + k, j + l, m_numRows, m_numCols)];
+
+        }
+      }
+    }
+  }
+  memcpy(m_hCells, temp, sizeof(Cell) * m_numRows * m_numCols);
+  free(temp);
+#endif
 }
