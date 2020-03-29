@@ -33,7 +33,7 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
   if (off2.y >= numRows) return;
 
   auto center = computeModularOffset(off2.x, off2.y, numRows, numCols);
-  printf("b(%d,%d) t(%d,%d) / td (%d,%d) -> off2(%d,%d) mod(%d)\n",
+  if (false) printf("b(%d,%d) t(%d,%d) / td (%d,%d) -> off2(%d,%d) mod(%d)\n",
         blockIdx.x, blockIdx.y,
         threadIdx.x, threadIdx.y,
         tileDim.x, tileDim.y,
@@ -44,7 +44,7 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
     return computeModularOffset(off2.x + dx, off2.y + dy, numRows, numCols);
   };
   Op op;
-  printf("----   %d %d -> %02d    ----\n"
+  if (false) printf("----   %d %d -> %02d    ----\n"
          "nw(%02d) n(%02d) ne(%02d)\n"
          " w(%02d)   %02d   e(%02d)\n"
          "sw(%02d) s(%02d) se(%02d)\n",
@@ -64,7 +64,7 @@ struct GameOfLifeOp {
   __device__ Cell op(Cell nw, Cell n, Cell ne,
                      Cell w, Cell center, Cell e,
                      Cell sw, Cell s, Cell se) {
-    int sum = nw + n + ne + w + e + sw + s +e;
+    int sum = nw + n + ne + w + e + sw + s + se;
     uint8_t isThree = sum == 3;
     uint8_t isTwo = sum == 2;
     uint8_t isAlive = center;
@@ -101,6 +101,7 @@ GPULife::~GPULife() {
 void GPULife::show() const {
   cudaMemcpy(m_hCells, m_gpuCells, sizeof(Cell) * m_numRows * m_numCols,
              cudaMemcpyDeviceToHost);
+  printf( "%c[2J", 27 );
   // Headers across top; first, column 10s
   printf("%14s", " ");
   for (int i = 10; i < m_numCols; i++){
@@ -128,7 +129,6 @@ void GPULife::show() const {
 }
 
 void GPULife::gen() {
-  if (true) {
   static const int kBlockWidth = 16;
   static const int kBlockHeight = 16;
   const dim3 grid(ceilDiv(m_numCols, kBlockHeight),
@@ -140,25 +140,4 @@ void GPULife::gen() {
   Cell* temp = m_gpuCells;
   m_gpuCells = m_gpuCellsOut;
   m_gpuCellsOut = temp;
-  }
-
-#if 0
-  cudaMemcpy(m_gpuCells
-  Cell* temp = (Cell*)malloc(sizeof(Cell) * m_numRows * m_numCols);
-  for (int i = 0; i < m_numRows; i++) {
-    for (int j = 0; j < m_numCols; j++) {
-      auto center = m_hCells[i * m_numCols + j];
-      auto neighbors = 0;
-      for (int k = -1; k <= 1; k++) {
-        for (int l = -1; l <= 1; l++) {
-          if (l == 0 && k == 0) continue;
-          auto neighbor = m_hCells[computeModularOffset(i + k, j + l, m_numRows, m_numCols)];
-
-        }
-      }
-    }
-  }
-  memcpy(m_hCells, temp, sizeof(Cell) * m_numRows * m_numCols);
-  free(temp);
-#endif
 }

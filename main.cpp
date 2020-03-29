@@ -4,10 +4,9 @@
 
 int main(int argc, char** argv) {
   printf("shreck\n");
-  GPULife board(5, 8);
+  GPULife board(24, 80);
 
-  for (int i = 0; i < 3; i++) {
-    printf("-----------------------\n");
+  for (int i = 0; i < 1000; i++) {
     board.gen();
     board.show();
   }
