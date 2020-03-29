@@ -11,8 +11,8 @@ typedef struct Offset2D {
 } Offset2ds;
 
 __device__
-size_t computeModularOffset(size_t x, size_t y, size_t numRows, size_t numCols) {
-  return (x % numRows) * numCols + (y % numCols);
+size_t computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
+  return MODULAR_OFFSET(x, y, numRows, numCols);
 }
 
 __device__
@@ -29,31 +29,14 @@ template<typename Payload, typename Op, int kBlockHeight, int kBlockWidth>
 __global__
 void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, int numCols) {
   auto off2 = computeOffset(tileDim, blockIdx, threadIdx, numRows, numCols);
-  if (true || blockIdx.x == 3 && blockIdx.y == 1){
-    // printf("gridDim: %d,%d\n", gridDim.x, gridDim.y);
-    printf("b(%d, %d) t(%d, %d)-> %d,%d flat %d\n", blockIdx.x, blockIdx.y,
-           threadIdx.x, threadIdx.y, int(off2.x), int(off2.y),
-           int(computeModularOffset(off2.x, off2.y, numRows, numCols)));
-  }
-
-  Op op;
   if (off2.x >= numCols) return;
   if (off2.y >= numRows) return;
 
   auto center = computeModularOffset(off2.x, off2.y, numRows, numCols);
-  if (false && off2.x >= 1 && off2.x < numCols - 1 &&
-      off2.y >= 1 && off2.y < numRows - 1) {
-    auto north = center - numCols;
-    auto south = center + numCols;
-    out[center] = op.op(in[north - 1],  in[north], out[north + 1],
-                        in[center - 1], in[center], out[center + 1],
-                        in[south - 1],  in[south], out[south + 1]);
-    return;
-  }
-
   auto nudge = [&](int dx, int dy) {
     return computeModularOffset(off2.x + dx, off2.y + dy, numRows, numCols);
   };
+  Op op;
   out[center] = op.op(
         in[nudge(-1, -1)], in[nudge(0, -1)], in[nudge(+1, -1)],  // nw, north, ne
         in[nudge(-1,  0)], in[center],       in[nudge( 0, +1)],  // w        , e
@@ -65,10 +48,10 @@ struct GameOfLifeOp {
                      Cell w, Cell center, Cell e,
                      Cell sw, Cell s, Cell se) {
     int sum = nw + n + ne + w + e + sw + s +e;
-    bool isThree = sum == 3;
-    bool isTwo = sum == 2;
-    bool isAlive = center;
-    return uint8_t( (!isAlive & isThree) | (isAlive & (isThree | isTwo)));
+    uint8_t isThree = sum == 3;
+    uint8_t isTwo = sum == 2;
+    uint8_t isAlive = center;
+    return uint8_t( (~isAlive & isThree) | (isAlive & (isThree | isTwo)));
   }
 };
 
