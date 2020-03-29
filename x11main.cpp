@@ -8,6 +8,7 @@ void redraw(GPULife* gpulife, Display* dis, GC gc, int win){
   auto dims = gpulife->dims();
   const auto *cells = gpulife->cells();
 
+  XFlush(dis);
   for (auto x = 0; x < dims.x; x++) {
     for (auto y = 0; y < dims.y; y++) {
       auto off = x * dims.y + y;
@@ -18,7 +19,7 @@ void redraw(GPULife* gpulife, Display* dis, GC gc, int win){
       }
     }
   }
-  // XSync(dis, False);
+  XSync(dis, False);
 }
 
 void handleEvent(GPULife* g, const XEvent* ev){
@@ -29,23 +30,18 @@ void drive(GPULife* gpulife){
 
   Display *dis = XOpenDisplay(NULL);
   int screen = XDefaultScreen(dis);
-  auto black = BlackPixel(dis, screen);
-  auto white = WhitePixel(dis, screen);
 
   Window win = XCreateSimpleWindow(dis, DefaultRootWindow(dis),
         0, 0,
-        dims.x, dims.y, 5, white, black);
+        dims.x, dims.y, 5,
+        BlackPixel(dis, screen), WhitePixel(dis, screen));
   XSetStandardProperties(dis, win, "GPULife", "Oy!", None, NULL, 0, NULL);
   XSelectInput(dis, win,         
         ExposureMask | KeyPressMask | KeyReleaseMask | PointerMotionMask |
         ButtonPressMask | ButtonReleaseMask  | StructureNotifyMask );
 
   XMapWindow(dis, win);
-  XFlush(dis);
-  auto gc = XCreateGC(dis, win, 0, 0);
-  XSetBackground(dis, gc, white);
-  XSetBackground(dis, gc, white);
-  XClearWindow(dis, win);
+  auto gc = DefaultGC(dis, screen);
   XMapRaised(dis, win);
 
   // auto pixmap = XCreatePixmap(dis, win, dims.x, dims.y, 1);
@@ -61,7 +57,7 @@ void drive(GPULife* gpulife){
     FD_SET(x11fd, &in_fds);
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = 0;
+    tv.tv_usec = 100; // XXX: pause-ish?
     auto nready = select(x11fd + 1, &in_fds, NULL, NULL, &tv);
     if (nready > 0) {
       XEvent ev;

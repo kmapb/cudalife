@@ -1,5 +1,5 @@
 CXX=/usr/bin/g++
-CXXFLAGS=-g -O3
+CXXFLAGS=-g
 
 default: xgpulife gpulife runtests
 
