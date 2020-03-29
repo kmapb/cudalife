@@ -21,7 +21,7 @@ tests: gpulife.o tests.o
 	nvcc -g -o $@ $^
 
 gpulife.o: gpulife.cu gpulife.hpp
-	nvcc $(CXXFLAGS) -arch compute_30 --compiler-bindir ${CXX} -c  gpulife.cu
+	nvcc -O3 $(CXXFLAGS) -arch compute_30 --compiler-bindir ${CXX} -c  gpulife.cu
 
 tests.o: tests.cu gpulife.hpp
 	nvcc -g -arch compute_30 --compiler-bindir ${CXX} -c  tests.cu

@@ -47,12 +47,12 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
          off2.x, off2.y,
          center,
          nudge(-1, -1), nudge(0, -1), nudge(+1, -1),
-         nudge(-1, 0),  center,       nudge(0, +1),
+         nudge(-1, 0),  center,       nudge(+1, 0),
          nudge(-1, +1), nudge(0, +1), nudge(+1, +1));
 
   out[center] = op.op(
         in[nudge(-1, -1)], in[nudge(0, -1)], in[nudge(+1, -1)],  // nw, north, ne
-        in[nudge(-1,  0)], in[center],       in[nudge( 0, +1)],  // w        , e
+        in[nudge(-1,  0)], in[center],       in[nudge(+1,  0)],  // w        , e
         in[nudge(-1, +1)], in[nudge(0, +1)], in[nudge(+1, +1)]); // sw, south, se
 }
 
@@ -77,16 +77,20 @@ GPULife::GPULife(int numRows, int numCols)
   cudaMalloc(&m_gpuCells, 2 * boardSize);
   m_gpuCellsOut = m_gpuCells + boardSize;
 
-  m_hCells = (Cell*)malloc(sizeof(Cell) * numRows * numCols);
-
+  m_hCells = (Cell*)malloc(boardSize);
   for (int i = 0; i < numRows; i++) {
     for (int j = 0; j < numCols; j++) {
       m_hCells[i * numCols + j] = bool(random() % 3);
     }
   }
 
-  cudaMemcpy(m_gpuCells, m_hCells, sizeof(Cell) * numRows * numCols,
+  cudaMemcpy(m_gpuCells, m_hCells, sizeof(Cell) * m_numRows * m_numCols,
              cudaMemcpyHostToDevice);
+}
+
+void GPULife::sync() const {
+  cudaMemcpy(m_hCells, m_gpuCells, sizeof(Cell) * m_numRows * m_numCols,
+             cudaMemcpyDeviceToHost);
 }
 
 GPULife::~GPULife() {
@@ -95,6 +99,7 @@ GPULife::~GPULife() {
 }
 
 void GPULife::show() const {
+  sync();
   printf( "%c[2J", 27 );
   // Headers across top; first, column 10s
   printf("%14s", " ");
@@ -123,20 +128,19 @@ void GPULife::show() const {
 }
 
 void GPULife::gen() {
-  static const int kBlockWidth = 16;
-  static const int kBlockHeight = 16;
+  static const int kBlockWidth = 32;
+  static const int kBlockHeight = 32;
   const dim3 grid(ceilDiv(m_numCols, kBlockHeight),
                   ceilDiv(m_numRows, kBlockWidth));
   const dim3 blk(kBlockWidth, kBlockHeight);
   const dim3 tile(kBlockWidth, kBlockHeight);
   apply2dStencil<Cell, GameOfLifeOp, kBlockWidth, kBlockHeight><<<grid, blk>>>(m_gpuCells, m_gpuCellsOut, tile, m_numRows, m_numCols);
+
   // Flip the buffer
   Cell* temp = m_gpuCells;
   m_gpuCells = m_gpuCellsOut;
   m_gpuCellsOut = temp;
-
-  cudaMemcpy(m_hCells, m_gpuCells, sizeof(Cell) * m_numRows * m_numCols,
-             cudaMemcpyDeviceToHost);
+  sync();
 }
 
 Offset2D GPULife::dims() const {

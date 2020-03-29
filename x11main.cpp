@@ -2,9 +2,13 @@
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "gpulife.hpp"
 
 void redraw(GPULife* gpulife, Display* dis, GC gc, int win){
+  static int generation = 0;
   auto dims = gpulife->dims();
   const auto *cells = gpulife->cells();
 
@@ -19,6 +23,21 @@ void redraw(GPULife* gpulife, Display* dis, GC gc, int win){
       }
     }
   }
+
+  static GC textGC;
+  static bool inited;
+  if (!inited) {
+    XGCValues grvals;
+    memset(&grvals, 0, sizeof(grvals));
+    auto fontInfo = XLoadQueryFont(dis, "fixed");
+    grvals.font = fontInfo->fid;
+    grvals.background = BlackPixel(dis, XDefaultScreen(dis));
+    grvals.foreground = WhitePixel(dis, XDefaultScreen(dis));
+    textGC = XCreateGC(dis, win, GCFont|GCForeground|GCBackground, &grvals);
+  }
+  char msg [20];
+  snprintf(msg, 20, "gen %05d\n", generation++);
+  XDrawString(dis, win, textGC, 10, 50, msg, strlen(msg));
   XSync(dis, False);
 }
 
@@ -47,7 +66,7 @@ void drive(GPULife* gpulife){
   // auto pixmap = XCreatePixmap(dis, win, dims.x, dims.y, 1);
 
   auto x11fd = ConnectionNumber(dis);
-  for (;;) {
+  for (auto i = 0;; i++) {
     gpulife->gen();
 
 #if 1
@@ -57,7 +76,7 @@ void drive(GPULife* gpulife){
     FD_SET(x11fd, &in_fds);
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = 100; // XXX: pause-ish?
+    tv.tv_usec = 0;
     auto nready = select(x11fd + 1, &in_fds, NULL, NULL, &tv);
     if (nready > 0) {
       XEvent ev;
@@ -66,14 +85,23 @@ void drive(GPULife* gpulife){
     }
 #endif
 
-    redraw(gpulife, dis, gc, win);
+    if ((i % 10) == 0) {
+      redraw(gpulife, dis, gc, win);
+    }
     // XXX put it in the window
     // gpulife->show();
   }
 }
 
 int main(int argc, char** argv) {
-  GPULife * gpuLife = new GPULife(128, 360);
+  srand(getpid());
+  auto X = 360;
+  auto Y = 128;
+  if (argc >= 3) {
+    X = atoi(argv[1]);
+    Y = atoi(argv[2]);
+  }
+  GPULife * gpuLife = new GPULife(X, Y);
   drive(gpuLife);
   return 0;
 }

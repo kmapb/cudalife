@@ -13,6 +13,8 @@ class GPULife {
   Cell* m_gpuCells, *m_gpuCellsOut;
   Cell* m_hCells;
 
+private:
+  void sync() const;
  public:
   GPULife(int numRows, int numCols);
   ~GPULife();
@@ -20,7 +22,7 @@ class GPULife {
   void gen();
 
   Offset2D dims() const; 
-  const Cell* cells() const { return m_hCells; }
+  const Cell* cells() const { sync(); return m_hCells; }
   void show() const;
 };
 
