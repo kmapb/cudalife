@@ -1,10 +1,13 @@
 CXX=/usr/bin/g++
 CXXFLAGS=-g -O3
 
-default: gpulife runtests
+default: xgpulife gpulife runtests
 
 gpulife:	gpulife.o main.o
 	nvcc -g -o $@ $^
+
+xgpulife:	gpulife.o x11main.o
+	nvcc -g -o $@ $^ -lX11
 
 clean:
 	rm -f *.o

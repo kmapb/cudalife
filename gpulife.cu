@@ -6,10 +6,6 @@
 
 #include "gpulife.hpp"
 
-typedef struct Offset2D {
-  unsigned x, y;
-} Offset2D;
-
 __device__
 unsigned computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
   return MODULAR_OFFSET(x, y, numRows, numCols);
@@ -99,8 +95,6 @@ GPULife::~GPULife() {
 }
 
 void GPULife::show() const {
-  cudaMemcpy(m_hCells, m_gpuCells, sizeof(Cell) * m_numRows * m_numCols,
-             cudaMemcpyDeviceToHost);
   printf( "%c[2J", 27 );
   // Headers across top; first, column 10s
   printf("%14s", " ");
@@ -140,4 +134,11 @@ void GPULife::gen() {
   Cell* temp = m_gpuCells;
   m_gpuCells = m_gpuCellsOut;
   m_gpuCellsOut = temp;
+
+  cudaMemcpy(m_hCells, m_gpuCells, sizeof(Cell) * m_numRows * m_numCols,
+             cudaMemcpyDeviceToHost);
+}
+
+Offset2D GPULife::dims() const {
+    return { unsigned(m_numCols), unsigned(m_numRows) };
 }

@@ -4,6 +4,10 @@
 
 typedef uint8_t Cell;
 
+typedef struct Offset2D {
+  unsigned x, y;
+} Offset2D;
+
 class GPULife {
   int m_numRows, m_numCols;
   Cell* m_gpuCells, *m_gpuCellsOut;
@@ -13,8 +17,10 @@ class GPULife {
   GPULife(int numRows, int numCols);
   ~GPULife();
 
-
   void gen();
+
+  Offset2D dims() const; 
+  const Cell* cells() const { return m_hCells; }
   void show() const;
 };
 
