@@ -2,4 +2,5 @@ grunk
 .vimrc
 *.o
 gpulife
+xgpulife
 tests
