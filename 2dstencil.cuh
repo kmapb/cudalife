@@ -1,12 +1,12 @@
 #pragma once
 
 __device__
-unsigned computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
+static inline unsigned computeModularOffset(int x, int y, size_t numRows, size_t numCols) {
   return MODULAR_OFFSET(x, y, numRows, numCols);
 }
 
 __device__
-Offset2D computeOffset(dim3 tileDim, dim3 blockIdx, uint3 threadIdx, size_t numRows, size_t numCols) {
+static inline Offset2D computeOffset(dim3 tileDim, dim3 blockIdx, uint3 threadIdx, size_t numRows, size_t numCols) {
   auto x = tileDim.x * blockIdx.x + threadIdx.x;
   auto y = tileDim.y * blockIdx.y + threadIdx.y;
   return { x, y };
@@ -31,7 +31,6 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
   auto nudge = [&](int dx, int dy) {
     return computeModularOffset(off2.x + dx, off2.y + dy, numRows, numCols);
   };
-  Op op;
   if (false) printf("----   %d %d -> %02d    ----\n"
          "nw(%02d) n(%02d) ne(%02d)\n"
          " w(%02d)   %02d   e(%02d)\n"
@@ -42,7 +41,7 @@ void apply2dStencil(const Payload* in, Payload* out, dim3 tileDim, int numRows, 
          nudge(-1, 0),  center,       nudge(+1, 0),
          nudge(-1, +1), nudge(0, +1), nudge(+1, +1));
 
-  out[center] = op.op(
+  out[center] = Op::op(
         in[nudge(-1, -1)], in[nudge(0, -1)], in[nudge(+1, -1)],  // nw, north, ne
         in[nudge(-1,  0)], in[center],       in[nudge(+1,  0)],  // w        , e
         in[nudge(-1, +1)], in[nudge(0, +1)], in[nudge(+1, +1)]); // sw, south, se

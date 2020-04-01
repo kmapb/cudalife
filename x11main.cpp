@@ -69,7 +69,6 @@ void drive(GPULife* gpulife){
   for (auto i = 0;; i++) {
     gpulife->gen();
 
-#if 1
     // Weird hackery to emulate non-blocking XNextEvent
     fd_set in_fds;
     FD_ZERO(&in_fds);
@@ -83,13 +82,8 @@ void drive(GPULife* gpulife){
       XNextEvent(dis, &ev);
       handleEvent(gpulife, &ev);
     }
-#endif
 
-    if ((i % 10) == 0) {
-      redraw(gpulife, dis, gc, win);
-    }
-    // XXX put it in the window
-    // gpulife->show();
+    redraw(gpulife, dis, gc, win);
   }
 }
 

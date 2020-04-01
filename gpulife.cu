@@ -7,10 +7,8 @@
 #include "gpulife.hpp"
 #include "2dstencil.cuh"
 
-static int ceilDiv(int a, int b) { return ceil(float(a) / b); }
-
 struct GameOfLifeOp {
-  __device__ Cell op(Cell nw, Cell n, Cell ne,
+  static __device__ Cell op(Cell nw, Cell n, Cell ne,
                      Cell w, Cell center, Cell e,
                      Cell sw, Cell s, Cell se) {
     int sum = nw + n + ne + w + e + sw + s + se;

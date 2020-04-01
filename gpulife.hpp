@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tgmath.h>
 #include <stdint.h>
 
 typedef uint8_t Cell;
@@ -29,3 +30,6 @@ private:
 // Macro so it works across everyting
 #define MODULAR_OFFSET(x, y, numRows, numCols) \
     ((((x + numCols) % numCols)) + ((y + numRows) % numRows) * numCols)
+
+static inline int ceilDiv(int a, int b) { return ceil(float(a) / b); }
+
