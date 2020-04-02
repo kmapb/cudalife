@@ -79,8 +79,8 @@ void GPULife::show() const {
 }
 
 void GPULife::gen() {
-  static const int kBlockWidth = 32;
-  static const int kBlockHeight = 32;
+  static const int kBlockWidth = 8;
+  static const int kBlockHeight = 64;
   const dim3 grid(ceilDiv(m_numCols, kBlockHeight),
                   ceilDiv(m_numRows, kBlockWidth));
   const dim3 blk(kBlockWidth, kBlockHeight);

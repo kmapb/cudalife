@@ -64,6 +64,8 @@ struct TestStencilOp {
     assert(s == cudaSuccess);
     s = cudaMalloc(&cudaOut_, numBytes());
     assert(s == cudaSuccess);
+
+    reset();
   }
 
   ~TestStencilOp() {
@@ -75,10 +77,20 @@ struct TestStencilOp {
         uint64_t nw, uint64_t n, uint64_t ne,
         uint64_t w,  uint64_t c, uint64_t e,
         uint64_t sw, uint64_t s, uint64_t se){
-    return 711u;
+    return nw;
   }
  
   void reset() {
+    std::vector<uint64_t> hostmem;
+    hostmem.resize(x_ * y_);
+    auto* hmem = &hostmem[0];
+    for (int x = 0; x < x_; x++){
+      for (int y = 0; y < y_; y++){
+        hmem[y * x_ + x] = (uint64_t(x) << 32) | uint64_t(y);
+      }
+    }
+    cudaMemcpy(cudaIn_, hmem, hostmem.size() * sizeof(uint64_t),
+    cudaMemcpyHostToDevice);
     cudaMemset(cudaOut_, 0, numBytes());
   }
 
@@ -97,9 +109,32 @@ struct TestStencilOp {
     std::vector<uint64_t> hostmem;
     hostmem.resize(x_ * y_);
     cudaMemcpy(&hostmem[0], cudaOut_, numBytes(), cudaMemcpyDeviceToHost);
-    for (auto u: hostmem){
-      asrt(u == 711u);
+    for (int x = 0; x < x_; x++){
+      for (int y = 0; y < y_; y++){
+        auto u = hostmem[y * x_ + x];
+        uint64_t xcoord = u >> 32;
+        uint64_t ycoord = u & 0xffffffff;
+        // NW == (x-1, y-1)
+        auto xoughta = ((x - 1 +  x_) % x_);
+        auto youghta = ((y - 1 +  y_) % y_);
+        if (xcoord != xoughta){
+          printf("read %d, shoulda been %d for x-nw of cell (%d, %d) dims[%d, %d]\n",
+                xcoord, xoughta,
+                x, y,
+                x_, y_);
+          assert(false);
+
+        }
+        if (ycoord != youghta){
+          printf("read %d, shoulda been %d for y-nw of (%d, %d)\n",
+                ycoord, youghta,
+                x, y);
+          assert(false);
+
+        }
+      }
     }
+    g_successes++;
     return true;
   }
 };
